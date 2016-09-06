@@ -21,13 +21,13 @@
  * REVISION HISTORY
  * Version 1.0 - Johan van der Kuijl
  * 
- * 
  * DESCRIPTION
  * This node resides in the garden and acts as repeater between house and garage.
  * It also:
- * - detects motion with HC-SR501 ir motion sensor
- * - measures temperature and humidity with DHT22 sensor
+ * - detects motion with HC-SR501 ir motion sensor (not implemented yet)
+ * - measures temperature and humidity with DHT22 sensor (not implemented yet)
  * - controls a relay to switch on light 
+ * 
  */
 #define SKETCH_NAME "Afdak OTA"
 #define SKETCH_MAJOR_VER "1"

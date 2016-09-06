@@ -21,8 +21,9 @@
  * REVISION HISTORY
  * Version 1.0 - Henrik EKblad
  * Version 1.1 - Johan van der Kuijl
- * Version 1.3 - Johan van der Kuijl
- *   Changed sleep to wait
+ * Version 1.3 - Johan van der Kuijl - Changed sleep to wait
+ * Version 1.5 - Johan van der Kuijl - removed interrupts
+ * Version 1.6 - Johan van der Kuijl - fixed timing
  * 
  * DESCRIPTION
  * Node with door sensor on pin 2, motion on pin 3, dallas temp on pin 4
@@ -41,7 +42,7 @@
 #include <MySensors.h>  
 #define SKETCH_NAME "GarageSensor OTA"
 #define SKETCH_MAJOR_VER "1"
-#define SKETCH_MINOR_VER "4"
+#define SKETCH_MINOR_VER "6"
 
 // Sensors
 #include <DallasTemperature.h>
@@ -49,7 +50,7 @@
 //#include <Bounce2.h>
 
 // DALLAS TEMP
-#define COMPARE_TEMP 0 // Send temperature only if changed? 1 = Yes 0 = No
+#define COMPARE_TEMP 1 // Send temperature only if changed? 1 = Yes 0 = No
 #define ONE_WIRE_BUS 4 // Pin where dallase sensor is connected 
 #define MAX_ATTACHED_DS18B20 16
 OneWire oneWire(ONE_WIRE_BUS); // Setup a oneWire instance to communicate with any OneWire devices (not just Maxim/Dallas temperature ICs)
@@ -64,8 +65,8 @@ boolean metric = true;
 MyMessage msgTemp(CHILD_ID_TEMP,V_TEMP);
 
 // DOOR and MOTION
-#define PRIMARY_CHILD_ID 3
-#define SECONDARY_CHILD_ID 4
+#define PRIMARY_CHILD_ID 3 // DOOR
+#define SECONDARY_CHILD_ID 4 // MOTION
 
 #define PRIMARY_BUTTON_PIN 2   // Arduino Digital I/O pin for button/reed switch
 #define SECONDARY_BUTTON_PIN 3 // Arduino Digital I/O pin for motion detector
@@ -90,6 +91,8 @@ MyMessage msg2(SECONDARY_CHILD_ID, V_TRIPPED); // motion
 
 unsigned long SLEEP_TIME = 30000; // Sleep time between reads (in milliseconds)
 
+// timing
+unsigned long previousMillis = 0;        // will store last time TEMP was sent
 
 void setup() 
 {
@@ -159,37 +162,47 @@ void loop()
      sentValue2 = value;
   }  
 
-  // DALLAS TEMPERATURE
-  sensors.requestTemperatures();
+  // TEMP and timer
+  unsigned long currentMillis = millis();
 
-  // query conversion time and sleep until conversion completed
-  int16_t conversionTime = sensors.millisToWaitForConversion(sensors.getResolution());
-  // sleep() call can be replaced by wait() call if node need to process incoming messages (or if node is repeater)
-  wait(conversionTime);
+  if (currentMillis - previousMillis >= SLEEP_TIME) {
 
-  // Read temperatures and send them to controller 
-  for (int i=0; i<numSensors && i<MAX_ATTACHED_DS18B20; i++) {
- 
-    // Fetch and round temperature to one decimal
-    float temperature = static_cast<float>(static_cast<int>((getConfig().isMetric?sensors.getTempCByIndex(i):sensors.getTempFByIndex(i)) * 10.)) / 10.;
- 
-    // Only send data if temperature has changed and no error
-    #if COMPARE_TEMP == 1
-    if (lastTemperature[i] != temperature && temperature != -127.00 && temperature != 85.00) {
-    #else
-    if (temperature != -127.00 && temperature != 85.00) {
-    #endif
- 
-      // Send in the new temperature
-      send(msgTemp.setSensor(i).set(temperature,1));
-      // Save new temperatures for next compare
-      lastTemperature[i]=temperature;
+    // save the last time the temp was sent
+    previousMillis = currentMillis;
+    
+    // DALLAS TEMPERATURE
+    sensors.requestTemperatures();
+  
+    // query conversion time and sleep until conversion completed
+    int16_t conversionTime = sensors.millisToWaitForConversion(sensors.getResolution());
+    // sleep() call can be replaced by wait() call if node need to process incoming messages (or if node is repeater)
+    wait(conversionTime);
+  
+    // Read temperatures and send them to controller 
+    for (int i=0; i<numSensors && i<MAX_ATTACHED_DS18B20; i++) {
+   
+      // Fetch and round temperature to one decimal
+      float temperature = static_cast<float>(static_cast<int>((getConfig().isMetric?sensors.getTempCByIndex(i):sensors.getTempFByIndex(i)) * 10.)) / 10.;
+   
+      // Only send data if temperature has changed and no error
+      #if COMPARE_TEMP == 1
+      if (lastTemperature[i] != temperature && temperature != -127.00 && temperature != 85.00) {
+      #else
+      if (temperature != -127.00 && temperature != 85.00) {
+      #endif
+   
+        // Send in the new temperature
+        send(msgTemp.setSensor(i).set(temperature,1));
+        // Save new temperatures for next compare
+        lastTemperature[i]=temperature;
+      }
     }
   }
 
+  // do not sleep. This is not a battery node so don't care
   if(isTransportOK()) {
     // Sleep until something happens with the sensors, or after SLEEP_TIME
-    sleep(PRIMARY_BUTTON_PIN-2, CHANGE, SECONDARY_BUTTON_PIN-2, CHANGE, SLEEP_TIME);
+    // sleep(PRIMARY_BUTTON_PIN-2, CHANGE, SECONDARY_BUTTON_PIN-2, CHANGE, SLEEP_TIME);
   } else {
     wait(5000); // transport is not operational, allow the transport layer to fix this
   }
