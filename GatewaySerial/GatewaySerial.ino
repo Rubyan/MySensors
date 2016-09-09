@@ -38,7 +38,7 @@
 
 #define SKETCH_NAME "Gateway"
 #define SKETCH_MAJOR_VER "1"
-#define SKETCH_MINOR_VER "2"
+#define SKETCH_MINOR_VER "4"
 
 // Enable debug prints to serial monitor
 #define MY_DEBUG 
@@ -50,8 +50,8 @@
 
 // Set LOW transmit power level as default, if you have an amplified NRF-module and
 // power your radio separately with a good regulator you can turn up PA level. 
-//#define MY_RF24_PA_LEVEL RF24_PA_LOW 
-#define MY_RF24_PA_LEVEL RF24_PA_MAX 
+#define MY_RF24_PA_LEVEL RF24_PA_LOW 
+//#define MY_RF24_PA_LEVEL RF24_PA_MAX 
 
 // Enable serial gateway
 #define MY_GATEWAY_SERIAL
@@ -92,7 +92,7 @@
 #include <DallasTemperature.h>
 #include <OneWire.h>
 
-#define COMPARE_TEMP 0 // Send temperature only if changed? 1 = Yes 0 = No
+#define COMPARE_TEMP 1 // Send temperature only if changed? 1 = Yes 0 = No
 
 #define ONE_WIRE_BUS 3 // Pin where dallase sensor is connected 
 #define MAX_ATTACHED_DS18B20 16
@@ -129,7 +129,15 @@ void presentation() {
 }
 
 void loop() { 
-  // Send locally attached sensor data here 
+  // process locally attached sensors
+  // doTemperature();
+  
+  // use wait, not sleep because the gateway should always be listening
+  // wait(SLEEP_TIME);    
+}
+
+void doTemperature() {
+// Send locally attached sensor data here 
   // Fetch temperatures from Dallas sensors
   sensors.requestTemperatures();
 
@@ -156,10 +164,7 @@ void loop() {
       // Save new temperatures for next compare
       lastTemperature[i]=temperature;
     }  
-  }
-  
-  // use wait, not sleep because the gateway should always be listening
-  wait(SLEEP_TIME);    
+  }  
 }
 
 

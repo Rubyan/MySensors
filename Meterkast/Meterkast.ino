@@ -19,7 +19,7 @@
  */
 
 // Enable debug prints to serial monitor
-#define MY_DEBUG 
+//#define MY_DEBUG 
 
 // Enable and select radio type attached
 #define MY_RADIO_NRF24
@@ -29,7 +29,7 @@
 #define IN_PIN 3                     // PIN NUMBER OF DIGITAL OUTPUT TCRT5000
 #define INTERRUPT_DEBOUNCE_DELAY 300 // debounce in milliseconds            
 #define CHILD_ID 1                   // Id of the sensor child
-#define SKETCH_NAME "Meterkast"
+#define SKETCH_NAME "Meterkast OTA"
 #define SKETCH_MAJOR_VER "1"
 #define SKETCH_MINOR_VER "1"
 
@@ -96,6 +96,7 @@ void loop() {
       //Last Pulsecount not yet received from controller, request it again
       Serial.println("Requesting as nothing was received from gateway yet!");
       request(CHILD_ID, V_VAR1);
+      wait(1000);
       return;
   }
   else 
@@ -157,8 +158,8 @@ void loop() {
       Serial.println(liters_per_minute);
   
       send(lastCounterMsg.set(globalCounter));                  // Send  globalcounter value to gw in VAR1
-      send(flowMsg.set(liters_per_minute, 2));                      // Send flow value to gw
-      send(volumeMsg.set(1.0 * globalCounter / 1000, 3));                // Send volume value to gw and convert from dm3 to m3
+      send(flowMsg.set(liters_per_minute, 2));                  // Send flow value to gw
+      send(volumeMsg.set(1.0 * globalCounter / 1000, 3));       // Send volume value to gw and convert from dm3 to m3
           
       seeninterrupt = false;
       lastSent = millis();
